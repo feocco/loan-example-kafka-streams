@@ -51,7 +51,7 @@ public class Main {
     public void run(String[] args) throws Throwable {
         LOGGER.info("Application starting");
 
-        String bootstrapServers = "X:9092";
+        String bootstrapServers = "BROKER:9092";
         String applicationId = "loan-example-kafka-streams";
         Class keySerde = Serdes.String().getClass();
         Class valueSerde = JsonSerde.class;
@@ -173,10 +173,10 @@ public class Main {
         loanGroupKStream.to("loan-group");
 
         // Create a KTable for the loan events streams
-        KTable<String, JsonNode> loansGlobalKTable = streamsBuilder.table("loan");
+        KTable<String, JsonNode> loansKTable = streamsBuilder.table("loan");
 
         // Create a KTable from the rekeyed loan group stream
-        KTable<String, JsonNode> loandIdKeyedLoanGroupKTable = loanGroupKStream.flatMap(
+        KTable<String, JsonNode> loanIdKeyedLoanGroupKTable = loanGroupKStream.flatMap(
                 (key, value) -> {
                     List<KeyValue<String, JsonNode>>  keyValueList = new ArrayList<>();
                     String loanGroupId = value.get("id").asText();
@@ -192,8 +192,8 @@ public class Main {
                 }).toTable(Materialized.with(Serdes.String(), jsonSerde));
 
         KTable<String, JsonNode> enrichedLoanGroupKTable =
-            loandIdKeyedLoanGroupKTable.join(
-                loansGlobalKTable,
+            loanIdKeyedLoanGroupKTable.join(
+                loansKTable,
                 (loanGroupJsonNode, loanJsonNode) -> {
                     ObjectNode loanGroupObjectNode = (ObjectNode) loanGroupJsonNode;
                     JsonNode result = loanGroupObjectNode.set(
