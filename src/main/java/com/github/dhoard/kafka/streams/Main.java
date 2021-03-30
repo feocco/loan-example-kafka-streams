@@ -172,11 +172,17 @@ public class Main {
         loansKStream.to("loan");
         loanGroupKStream.to("loan-group");
 
-        // Create a KTable for the loan events streams
-        KTable<String, JsonNode> loansKTable = streamsBuilder.table("loan");
+        // Create a KTable for the loan processed events stream
+        // External client is processing loan topic and outputting to loan-processed
+        KTable<String, JsonNode> loansKTable = streamsBuilder.table("loan-processed");
+
+        // Create KStream for pool processed events stream
+        // External client is processing loan-group topic and outputting to loan-group-processed
+        KStream<String, JsonNode> loanGroupProcessedKStream =
+                streamsBuilder.stream("loan-group-processed");
 
         // Create a KTable from the rekeyed loan group stream
-        KTable<String, JsonNode> loanIdKeyedLoanGroupKTable = loanGroupKStream.flatMap(
+        KTable<String, JsonNode> loanIdKeyedLoanGroupKTable = loanGroupProcessedKStream.flatMap(
                 (key, value) -> {
                     List<KeyValue<String, JsonNode>>  keyValueList = new ArrayList<>();
                     String loanGroupId = value.get("id").asText();
